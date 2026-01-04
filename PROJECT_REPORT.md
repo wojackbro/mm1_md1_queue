@@ -3,6 +3,8 @@
 
 **Project Title:** M/M/1 and M/D/1 Queueing System Simulation and Analysis  
 **Author:** Abid Hossain  
+**Company:** Reiss Romoli  
+**Position:** Internship  
 **Date:** January 2025  
 **Language:** Python  
 
@@ -347,6 +349,8 @@ The project provides a solid foundation for understanding queueing systems in te
 ---
 
 **Author:** Abid Hossain  
+**Company:** Reiss Romoli  
+**Position:** Internship  
 **Report Generated:** January 2025  
 **Project Status:** ✅ Complete
 

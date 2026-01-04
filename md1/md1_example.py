@@ -70,8 +70,8 @@ def run_case(lam: float, mu: float = 1.0, sim_time: float = 10000.0) -> None:
 
 def main() -> None:
     # Two required checkpoints
-    run_case(lam=0.5, mu=1.0, sim_time=50000.0)
-    run_case(lam=0.9, mu=1.0, sim_time=50000.0)
+    run_case(lam=0.5, mu=1.0, sim_time=20000.0)
+    run_case(lam=0.9, mu=1.0, sim_time=20000.0)
 
 
 if __name__ == "__main__":
