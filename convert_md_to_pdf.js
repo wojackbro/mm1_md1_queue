@@ -31,21 +31,21 @@ imageFiles.forEach(imageFile => {
     }
 });
 
-// Step 2: Protect LaTeX math by temporarily replacing it with placeholders
+// Step 2: Protect LaTeX math by temporarily replacing it with HTML comments (won't be processed by marked)
 const mathPlaceholders = [];
 let placeholderIndex = 0;
 
-// Replace display math \[...\] with placeholders (use unique markers)
+// Replace display math \[...\] with HTML comment placeholders
 mdContent = mdContent.replace(/\\\[([\s\S]*?)\\\]/g, (match, content) => {
-    const placeholder = `__MATH_DISPLAY_${placeholderIndex}__`;
+    const placeholder = `<!--MATH_DISPLAY_${placeholderIndex}-->`;
     mathPlaceholders.push({ type: 'display', content: content.trim(), placeholder });
     placeholderIndex++;
     return `\n\n${placeholder}\n\n`;
 });
 
-// Replace inline math \(...\) with placeholders  
+// Replace inline math \(...\) with HTML comment placeholders  
 mdContent = mdContent.replace(/\\\(([\s\S]*?)\\\)/g, (match, content) => {
-    const placeholder = `__MATH_INLINE_${placeholderIndex}__`;
+    const placeholder = `<!--MATH_INLINE_${placeholderIndex}-->`;
     mathPlaceholders.push({ type: 'inline', content: content.trim(), placeholder });
     placeholderIndex++;
     return placeholder;
@@ -54,22 +54,16 @@ mdContent = mdContent.replace(/\\\(([\s\S]*?)\\\)/g, (match, content) => {
 // Step 3: Convert markdown to HTML
 let htmlBody = marked(mdContent);
 
-// Step 4: Restore LaTeX math with proper MathJax delimiters
+// Step 4: Restore LaTeX math with proper MathJax delimiters (replace HTML comments)
 mathPlaceholders.forEach((math) => {
-    // The content already has proper LaTeX syntax, just need to wrap it
+    // Create the math delimiter - need to escape backslashes for JavaScript string
+    // But in the final HTML, we need actual backslashes
     const mathDelimiter = math.type === 'display' 
         ? `\\[${math.content}\\]` 
         : `\\(${math.content}\\)`;
     
-    // Replace placeholder - handle cases where marked might wrap it in <p> tags
-    const patterns = [
-        new RegExp(`<p>\\s*${math.placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*</p>`, 'g'),
-        new RegExp(math.placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
-    ];
-    
-    patterns.forEach(pattern => {
-        htmlBody = htmlBody.replace(pattern, mathDelimiter);
-    });
+    // Replace the HTML comment placeholder
+    htmlBody = htmlBody.replace(math.placeholder, mathDelimiter);
 });
 
 // Create full HTML document with MathJax
@@ -162,7 +156,6 @@ async function convertToPdf() {
     
     await browser.close();
     console.log('PDF created successfully: PROJECT_REPORT.pdf');
-    console.log('Check temp.html to verify HTML output');
 }
 
 convertToPdf().catch(err => {
