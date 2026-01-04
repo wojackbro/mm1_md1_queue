@@ -1,6 +1,8 @@
 # SSGRR - Collaborative Study for Telecom Cases
 ## Queueing Theory Project Report
 
+> **Note:** For the best viewing experience with properly rendered LaTeX equations and images, please download and view the [PROJECT_REPORT.pdf](PROJECT_REPORT.pdf) file.
+
 **Project Title:** M/M/1 and M/D/1 Queueing System Simulation and Analysis  
 **Author:** Abid Hossain  
 **Company:** Reiss Romoli  
