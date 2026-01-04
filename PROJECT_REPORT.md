@@ -190,6 +190,8 @@ The project is organized into a modular structure:
 
 ### Graph 2: M/D/1 Queue - Convergence Plot (λ = 0.5, μ = 1.0)
 
+![M/D/1 Queue Convergence Plot (λ = 0.5, μ = 1.0)](md1_lambda_0.5_mu_1.0.png)
+
 **File:** `md1_lambda_0.5_mu_1.0.png`
 
 **Description:**
@@ -203,6 +205,8 @@ The project is organized into a modular structure:
 - Shows convergence to theoretical value
 
 ### Graph 3: M/D/1 Queue - Convergence Plot (λ = 0.9, μ = 1.0)
+
+![M/D/1 Queue Convergence Plot (λ = 0.9, μ = 1.0)](md1_lambda_0.9_mu_1.0.png)
 
 **File:** `md1_lambda_0.9_mu_1.0.png`
 

@@ -64,6 +64,7 @@ Thumbs.db
 # Project specific
 *.png
 !README*.png
+!md1_lambda_*.png
 *.pdf
 !PROJECT_REPORT.pdf
 
