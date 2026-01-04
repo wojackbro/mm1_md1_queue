@@ -65,4 +65,5 @@ Thumbs.db
 *.png
 !README*.png
 *.pdf
+!PROJECT_REPORT.pdf
 
