@@ -12,7 +12,26 @@ marked.setOptions({
 // Read markdown file
 let mdContent = fs.readFileSync('PROJECT_REPORT.md', 'utf-8');
 
-// Step 1: Protect LaTeX math by temporarily replacing it with placeholders
+// Step 1: Convert images to base64 BEFORE markdown processing
+const imageFiles = ['md1_lambda_0.5_mu_1.0.png', 'md1_lambda_0.9_mu_1.0.png'];
+const imageDataURIs = {};
+
+imageFiles.forEach(imageFile => {
+    if (fs.existsSync(imageFile)) {
+        const imageBuffer = fs.readFileSync(imageFile);
+        const imageBase64 = imageBuffer.toString('base64');
+        const imageExt = path.extname(imageFile).slice(1);
+        imageDataURIs[imageFile] = `data:image/${imageExt};base64,${imageBase64}`;
+        
+        // Replace markdown image syntax with HTML img tag using data URI
+        const imageRegex = new RegExp(`!\\[([^\\]]*)\\]\\(${imageFile.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
+        mdContent = mdContent.replace(imageRegex, (match, alt) => {
+            return `<img src="${imageDataURIs[imageFile]}" alt="${alt}" style="max-width: 100%; height: auto; margin: 10px 0;" />`;
+        });
+    }
+});
+
+// Step 2: Protect LaTeX math by temporarily replacing it with HTML-safe placeholders
 const mathPlaceholders = [];
 let placeholderIndex = 0;
 
@@ -21,7 +40,7 @@ mdContent = mdContent.replace(/\\\[([\s\S]*?)\\\]/g, (match, content) => {
     const placeholder = `__MATH_DISPLAY_${placeholderIndex}__`;
     mathPlaceholders[placeholderIndex] = { type: 'display', content: content.trim() };
     placeholderIndex++;
-    return placeholder;
+    return `\n\n${placeholder}\n\n`; // Add line breaks for block math
 });
 
 // Replace inline math \(...\) with placeholders  
@@ -32,48 +51,27 @@ mdContent = mdContent.replace(/\\\(([\s\S]*?)\\\)/g, (match, content) => {
     return placeholder;
 });
 
-// Step 2: Convert markdown to HTML
+// Step 3: Convert markdown to HTML
 let htmlBody = marked(mdContent);
 
-// Step 3: Restore LaTeX math with proper MathJax delimiters
+// Step 4: Restore LaTeX math with proper MathJax delimiters
 mathPlaceholders.forEach((math, index) => {
     const placeholder = math.type === 'display' 
         ? `__MATH_DISPLAY_${index}__` 
         : `__MATH_INLINE_${index}__`;
     
+    // Escape backslashes properly for JavaScript string
+    const mathContent = math.content.replace(/\\/g, '\\\\');
+    
     // Use \[...\] for display math and \(...\) for inline math
     const mathDelimiter = math.type === 'display' 
-        ? `\\[${math.content}\\]` 
-        : `\\(${math.content}\\)`;
+        ? `\\[${mathContent}\\]` 
+        : `\\(${mathContent}\\)`;
     
-    htmlBody = htmlBody.replace(placeholder, mathDelimiter);
-});
-
-// Step 4: Convert image paths to data URIs (base64)
-const imageFiles = ['md1_lambda_0.5_mu_1.0.png', 'md1_lambda_0.9_mu_1.0.png'];
-const imageDataURIs = {};
-
-imageFiles.forEach(imageFile => {
-    if (fs.existsSync(imageFile)) {
-        const imageBuffer = fs.readFileSync(imageFile);
-        const imageBase64 = imageBuffer.toString('base64');
-        const imageExt = path.extname(imageFile).slice(1); // Remove the dot
-        imageDataURIs[imageFile] = `data:image/${imageExt};base64,${imageBase64}`;
-    }
-});
-
-// Replace image src attributes with data URIs
-Object.keys(imageDataURIs).forEach(imageFile => {
-    // Match <img src="filename.png" ...> or markdown image syntax ![alt](filename.png)
-    const regex = new RegExp(`(src=["']|\\]\\(|href=["'])${imageFile.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g');
-    htmlBody = htmlBody.replace(regex, (match, prefix) => {
-        return prefix + imageDataURIs[imageFile];
-    });
-    
-    // Also handle markdown image syntax that was converted to <img> tags
+    // Replace in HTML - need to handle paragraph tags that marked might add
     htmlBody = htmlBody.replace(
-        new RegExp(`(<img[^>]*src=["'])${imageFile.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'g'),
-        (match, prefix) => prefix + imageDataURIs[imageFile]
+        new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+        mathDelimiter
     );
 });
 
@@ -132,22 +130,24 @@ async function convertToPdf() {
     
     await page.setContent(htmlContent, { waitUntil: 'networkidle' });
     
-    // Wait for MathJax to load and process
+    // Wait for MathJax to load
     await page.waitForFunction(() => {
-        return typeof window.MathJax !== 'undefined' && window.MathJax.typesetPromise;
-    }, { timeout: 10000 }).catch(() => {
-        console.log('MathJax loading...');
+        return typeof window.MathJax !== 'undefined';
+    }, { timeout: 15000 });
+    
+    // Wait for MathJax to be ready
+    await page.evaluate(() => {
+        return new Promise((resolve) => {
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                window.MathJax.typesetPromise().then(() => resolve());
+            } else {
+                setTimeout(resolve, 2000);
+            }
+        });
     });
     
-    // Typeset math
-    await page.evaluate(() => {
-        if (window.MathJax && window.MathJax.typesetPromise) {
-            return window.MathJax.typesetPromise();
-        }
-    }).catch(err => console.log('MathJax typeset:', err));
-    
-    // Wait a bit more for rendering
-    await page.waitForTimeout(4000);
+    // Additional wait to ensure rendering is complete
+    await page.waitForTimeout(3000);
     
     await page.pdf({
         path: 'PROJECT_REPORT.pdf',
@@ -163,6 +163,7 @@ async function convertToPdf() {
     
     await browser.close();
     console.log('PDF created successfully: PROJECT_REPORT.pdf');
+    console.log('Check temp.html to verify HTML output');
 }
 
 convertToPdf().catch(err => {
