@@ -31,22 +31,22 @@ imageFiles.forEach(imageFile => {
     }
 });
 
-// Step 2: Protect LaTeX math by temporarily replacing it with HTML-safe placeholders
+// Step 2: Protect LaTeX math by temporarily replacing it with placeholders
 const mathPlaceholders = [];
 let placeholderIndex = 0;
 
-// Replace display math \[...\] with placeholders
+// Replace display math \[...\] with placeholders (use unique markers)
 mdContent = mdContent.replace(/\\\[([\s\S]*?)\\\]/g, (match, content) => {
     const placeholder = `__MATH_DISPLAY_${placeholderIndex}__`;
-    mathPlaceholders[placeholderIndex] = { type: 'display', content: content.trim() };
+    mathPlaceholders.push({ type: 'display', content: content.trim(), placeholder });
     placeholderIndex++;
-    return `\n\n${placeholder}\n\n`; // Add line breaks for block math
+    return `\n\n${placeholder}\n\n`;
 });
 
 // Replace inline math \(...\) with placeholders  
 mdContent = mdContent.replace(/\\\(([\s\S]*?)\\\)/g, (match, content) => {
     const placeholder = `__MATH_INLINE_${placeholderIndex}__`;
-    mathPlaceholders[placeholderIndex] = { type: 'inline', content: content.trim() };
+    mathPlaceholders.push({ type: 'inline', content: content.trim(), placeholder });
     placeholderIndex++;
     return placeholder;
 });
@@ -55,24 +55,21 @@ mdContent = mdContent.replace(/\\\(([\s\S]*?)\\\)/g, (match, content) => {
 let htmlBody = marked(mdContent);
 
 // Step 4: Restore LaTeX math with proper MathJax delimiters
-mathPlaceholders.forEach((math, index) => {
-    const placeholder = math.type === 'display' 
-        ? `__MATH_DISPLAY_${index}__` 
-        : `__MATH_INLINE_${index}__`;
-    
-    // Escape backslashes properly for JavaScript string
-    const mathContent = math.content.replace(/\\/g, '\\\\');
-    
-    // Use \[...\] for display math and \(...\) for inline math
+mathPlaceholders.forEach((math) => {
+    // The content already has proper LaTeX syntax, just need to wrap it
     const mathDelimiter = math.type === 'display' 
-        ? `\\[${mathContent}\\]` 
-        : `\\(${mathContent}\\)`;
+        ? `\\[${math.content}\\]` 
+        : `\\(${math.content}\\)`;
     
-    // Replace in HTML - need to handle paragraph tags that marked might add
-    htmlBody = htmlBody.replace(
-        new RegExp(placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-        mathDelimiter
-    );
+    // Replace placeholder - handle cases where marked might wrap it in <p> tags
+    const patterns = [
+        new RegExp(`<p>\\s*${math.placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*</p>`, 'g'),
+        new RegExp(math.placeholder.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+    ];
+    
+    patterns.forEach(pattern => {
+        htmlBody = htmlBody.replace(pattern, mathDelimiter);
+    });
 });
 
 // Create full HTML document with MathJax
@@ -135,19 +132,21 @@ async function convertToPdf() {
         return typeof window.MathJax !== 'undefined';
     }, { timeout: 15000 });
     
-    // Wait for MathJax to be ready
+    // Wait for MathJax to be ready and typeset
     await page.evaluate(() => {
         return new Promise((resolve) => {
             if (window.MathJax && window.MathJax.typesetPromise) {
-                window.MathJax.typesetPromise().then(() => resolve());
+                window.MathJax.typesetPromise().then(() => {
+                    setTimeout(resolve, 1000);
+                });
             } else {
-                setTimeout(resolve, 2000);
+                setTimeout(resolve, 3000);
             }
         });
     });
     
     // Additional wait to ensure rendering is complete
-    await page.waitForTimeout(3000);
+    await page.waitForTimeout(2000);
     
     await page.pdf({
         path: 'PROJECT_REPORT.pdf',
