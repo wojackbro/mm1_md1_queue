@@ -66,14 +66,14 @@ Divide the code into the following modules:
 #### M/M/1 Queue
 For an M/M/1 queue with arrival rate λ and service rate μ, the theoretical mean waiting time in the queue is:
 
-\[W_q = \frac{1}{\mu - \lambda} - \frac{1}{\mu} = \frac{\lambda}{\mu(\mu - \lambda)} = \frac{\rho}{\mu(1 - \rho)}\]
+$$W_q = \frac{1}{\mu - \lambda} - \frac{1}{\mu} = \frac{\lambda}{\mu(\mu - \lambda)} = \frac{\rho}{\mu(1 - \rho)}$$
 
 where ρ = λ/μ is the utilization factor.
 
 #### M/D/1 Queue
 For an M/D/1 queue with Poisson arrivals and deterministic service times, the theoretical mean waiting time in the queue is:
 
-\[W_q = \frac{\rho}{2\mu(1 - \rho)}\]
+$$W_q = \frac{\rho}{2\mu(1 - \rho)}$$
 
 where ρ = λ/μ is the utilization factor.
 
